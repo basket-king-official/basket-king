@@ -1,44 +1,48 @@
-// Stylized (cartoon) notes only — never exact copies of real banknotes.
+// Stylized money only — inspired by real coins/notes (colors, values) but never exact copies.
+// kind: 'coin' or 'bill' decides how the item is drawn.
 export const CURRENCIES = {
   XAF: {
     code: 'XAF',
     format: (v) => `${v.toLocaleString('fr-FR')}F`,
     notes: [
-      { value: 500, weight: 4, color: '#3fbf6f', dark: '#1f7a43' },
-      { value: 1000, weight: 3, color: '#4aa3ff', dark: '#1f5fa8' },
-      { value: 2000, weight: 2, color: '#ff9f43', dark: '#b3621a' },
-      { value: 5000, weight: 1, color: '#c56cf0', dark: '#7d2fa3' },
+      { value: 100, weight: 5, kind: 'coin', color: '#f2c14e', dark: '#9a6a12' },
+      { value: 200, weight: 4, kind: 'coin', color: '#dfe3e8', dark: '#6f7782' },
+      { value: 500, weight: 3, kind: 'coin', color: '#ffd76a', dark: '#8a5a0a', ring: '#cfd6de' },
+      { value: 1000, weight: 2, kind: 'bill', color: '#38b86a', dark: '#1b6b3b' },
+      { value: 2000, weight: 1, kind: 'bill', color: '#3d8bff', dark: '#1a4fa8' },
     ],
   },
   NGN: {
     code: 'NGN',
     format: (v) => `₦${v.toLocaleString('en-NG')}`,
     notes: [
-      { value: 100, weight: 4, color: '#3fbf6f', dark: '#1f7a43' },
-      { value: 200, weight: 3, color: '#4aa3ff', dark: '#1f5fa8' },
-      { value: 500, weight: 2, color: '#ff9f43', dark: '#b3621a' },
-      { value: 1000, weight: 1, color: '#c56cf0', dark: '#7d2fa3' },
+      { value: 10, weight: 5, kind: 'coin', color: '#f2c14e', dark: '#9a6a12' },
+      { value: 20, weight: 4, kind: 'coin', color: '#dfe3e8', dark: '#6f7782' },
+      { value: 50, weight: 3, kind: 'bill', color: '#3d8bff', dark: '#1a4fa8' },
+      { value: 100, weight: 2, kind: 'bill', color: '#c56cf0', dark: '#7d2fa3' },
+      { value: 200, weight: 1, kind: 'bill', color: '#38b86a', dark: '#1b6b3b' },
     ],
   },
   USD: {
     code: 'USD',
     format: (v) => `$${v.toLocaleString('en-US')}`,
     notes: [
-      { value: 1, weight: 4, color: '#3fbf6f', dark: '#1f7a43' },
-      { value: 5, weight: 3, color: '#4aa3ff', dark: '#1f5fa8' },
-      { value: 10, weight: 2, color: '#ff9f43', dark: '#b3621a' },
-      { value: 20, weight: 1, color: '#c56cf0', dark: '#7d2fa3' },
+      { value: 1, weight: 5, kind: 'coin', color: '#f2c14e', dark: '#9a6a12' },
+      { value: 2, weight: 4, kind: 'coin', color: '#dfe3e8', dark: '#6f7782' },
+      { value: 5, weight: 3, kind: 'bill', color: '#38b86a', dark: '#1b6b3b' },
+      { value: 10, weight: 2, kind: 'bill', color: '#3d8bff', dark: '#1a4fa8' },
+      { value: 20, weight: 1, kind: 'bill', color: '#c56cf0', dark: '#7d2fa3' },
     ],
   },
 };
 
 export const DEFAULT_CURRENCY = 'XAF';
 
-export function noteLabel(currency, value) {
-  return currency.format(value);
-}
-
 export function averageNoteValue(currency) {
   const total = currency.notes.reduce((s, n) => s + n.weight, 0);
   return currency.notes.reduce((s, n) => s + n.value * n.weight, 0) / total;
+}
+
+export function noteKey(currency, note) {
+  return `money_${currency.code}_${note.value}`;
 }

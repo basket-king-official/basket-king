@@ -1,0 +1,10 @@
+// Cloudflare deploy settings: serves the built game (dist/) as a static site.
+// "name" must match the Cloudflare project name.
+{
+  "name": "basket-king",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

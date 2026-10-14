@@ -5,9 +5,11 @@ const WASM_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/w
 const MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 
-const DETECT_INTERVAL_MS = 40; // ~25 detections per second
+const MIN_INTERVAL_MS = 45; // at most ~22 detections per second
+const BUSY_FACTOR = 1.5; // wait 1.5× the last detection time, so tracking never uses more than ~40% of the frame budget
+const DETECT_WIDTH = 256; // frames are shrunk to this width before tracking (the camera display stays full quality)
 const SLOW_SAMPLE_SIZE = 30;
-const SLOW_AVG_MS = 120; // slower than this on average → suggest touch mode
+const SLOW_AVG_MS = 220; // only give up on hand mode if the phone is really too slow
 
 /**
  * Tracks one hand from the camera.
@@ -31,6 +33,7 @@ class HandTracker {
     this._timings = [];
     this._lastRun = 0;
     this._lastVideoTime = -1;
+    this._interval = MIN_INTERVAL_MS;
   }
 
   async start(videoEl) {
@@ -47,11 +50,14 @@ class HandTracker {
           minHandDetectionConfidence: 0.5,
           minTrackingConfidence: 0.5,
         });
+      // CPU first: on phones the GPU is busy drawing the game and the camera, and sharing it causes freezes.
       try {
-        this.landmarker = await create('GPU');
-      } catch {
         this.landmarker = await create('CPU');
+      } catch {
+        this.landmarker = await create('GPU');
       }
+      this._canvas = document.createElement('canvas');
+      this._ctx = this._canvas.getContext('2d', { willReadFrequently: true });
       this.ready = true;
     } else if (!this.stream) {
       await this._openCamera(this.facing);
@@ -91,12 +97,22 @@ class HandTracker {
     if (!this.running) return;
     const now = performance.now();
     const v = this.video;
-    if (now - this._lastRun >= DETECT_INTERVAL_MS && v.readyState >= 2 && v.currentTime !== this._lastVideoTime) {
+    if (now - this._lastRun >= this._interval && v.readyState >= 2 && v.videoWidth && v.currentTime !== this._lastVideoTime) {
       this._lastRun = now;
       this._lastVideoTime = v.currentTime;
       const t0 = performance.now();
-      const result = this.landmarker.detectForVideo(v, now);
-      this._recordTiming(performance.now() - t0);
+      // Track on a small copy of the frame (same aspect ratio, so positions stay the same).
+      const w = DETECT_WIDTH;
+      const h = Math.round((v.videoHeight / v.videoWidth) * w);
+      if (this._canvas.width !== w || this._canvas.height !== h) {
+        this._canvas.width = w;
+        this._canvas.height = h;
+      }
+      this._ctx.drawImage(v, 0, 0, w, h);
+      const result = this.landmarker.detectForVideo(this._canvas, now);
+      const took = performance.now() - t0;
+      this._interval = Math.max(MIN_INTERVAL_MS, took * BUSY_FACTOR);
+      this._recordTiming(took);
 
       const lm = result.landmarks?.[0];
       if (lm) {

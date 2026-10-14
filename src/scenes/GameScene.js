@@ -320,7 +320,7 @@ export class GameScene extends Phaser.Scene {
     if (this.debugText) {
       const t = handTracker;
       this.debugText.setText(
-        `game ${Math.round(this.game.loop.actualFps)}fps | track ${Math.round(t.lastMs)}ms ${t.ratePerSec ?? 0}/s | hand ${t.handPct ?? 0}% | ${t.visible ? 'SEEN' : 'LOST'} ${t.fist ? 'FIST' : 'OPEN'} | cam ${this.video.videoWidth}x${this.video.videoHeight} ${t.facing}`,
+        `game ${Math.round(this.game.loop.actualFps)}fps | ${t.delegate ?? '?'} ${Math.round(t.lastMs)}ms ${t.ratePerSec ?? 0}/s | hand ${t.handPct ?? 0}% | ${t.visible ? 'SEEN' : 'LOST'} ${t.fist ? 'FIST' : 'OPEN'} | cam ${this.video.videoWidth}x${this.video.videoHeight} ${t.facing}`,
       );
     }
     if (this.mode === 'hand') {

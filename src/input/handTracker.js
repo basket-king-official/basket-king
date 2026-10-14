@@ -1,13 +1,14 @@
 // Hand tracking runs in a background worker (public/hand-worker.js) so the game never freezes.
 // This file opens the camera, sends small frames to the worker and turns its answers into
 // a hand position + fist state the game can read every frame.
+import { load, save } from '../storage.js';
 
-const DETECT_WIDTH = 480; // tracking frame width — big enough to keep a hand at arm's length (runs in the worker, so it can't freeze the game)
+const DETECT_WIDTH = 320; // tracking frame width (the model works at 192–224px internally; the camera display stays full quality)
 const LOST_GRACE_MS = 500; // keep the last hand position this long before deciding the hand is gone (no flicker)
 const WARMUP_FRAMES = 5; // the first detections are always slow; ignore them for the speed check
 const SLOW_SAMPLE_SIZE = 20;
 const SLOW_MEDIAN_MS = 700; // only give up on hand mode if tracking is below ~1.5 updates per second
-const MAX_PREDICT_MS = 150; // how far ahead we extrapolate the hand between updates
+const MAX_PREDICT_MS = 80; // how far ahead we extrapolate the hand between updates (small = no overshoot)
 const INIT_TIMEOUT_MS = 45000;
 
 /**
@@ -65,7 +66,14 @@ class HandTracker {
         const m = e.data;
         if (m.type === 'ready') {
           clearTimeout(timer);
+          this.delegate = m.delegate;
+          this._trialDone = !m.trial;
           resolve();
+        } else if (m.type === 'chosen') {
+          // The worker measured GPU vs CPU on this phone — remember the faster one for next time.
+          this.delegate = m.delegate;
+          this._trialDone = true;
+          if (!this._forced) save('delegate', m.delegate);
         } else if (m.type === 'error') {
           clearTimeout(timer);
           reject(new Error(m.message));
@@ -77,7 +85,10 @@ class HandTracker {
         clearTimeout(timer);
         reject(new Error(e.message || 'Hand tracking worker failed'));
       };
-      worker.postMessage({ type: 'init' });
+      // ?track=cpu or ?track=gpu forces one (for testing); otherwise use the remembered choice, if any.
+      const forced = new URLSearchParams(window.location.search).get('track')?.toUpperCase();
+      this._forced = forced === 'CPU' || forced === 'GPU' ? forced : null;
+      worker.postMessage({ type: 'init', preferred: this._forced ?? load('delegate', null) });
     });
   }
 
@@ -141,9 +152,10 @@ class HandTracker {
     }
   }
 
-  _onResult({ ms, landmarks }) {
+  _onResult({ ms, landmarks, delegate }) {
     this._busy = false;
     this.lastMs = ms;
+    if (delegate) this.delegate = delegate;
     // Simple stats for the ?debug readout.
     this._statFrames = (this._statFrames || 0) + 1;
     if (landmarks) this._statHands = (this._statHands || 0) + 1;
@@ -215,6 +227,7 @@ class HandTracker {
   }
 
   _checkSpeed(ms) {
+    if (!this._trialDone) return; // GPU/CPU trial still running — its timings don't count
     this._results += 1;
     if (this._results <= WARMUP_FRAMES || this._timings.length >= SLOW_SAMPLE_SIZE) return;
     this._timings.push(ms);

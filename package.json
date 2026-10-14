@@ -1,9 +1,10 @@
 {
   "name": "basket-king",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
+    "postinstall": "node scripts/copy-mediapipe.mjs",
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview --host"

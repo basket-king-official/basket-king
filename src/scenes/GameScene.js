@@ -142,6 +142,14 @@ export class GameScene extends Phaser.Scene {
       .setDepth(30)
       .setVisible(false);
 
+    // Add ?debug to the link to see live tracking stats at the bottom of the screen.
+    if (new URLSearchParams(window.location.search).has('debug')) {
+      this.debugText = this.add
+        .text(10, H - 12, '', { ...textStyle(16), backgroundColor: 'rgba(0,0,0,0.6)', padding: { x: 6, y: 4 }, wordWrap: { width: W - 20 } })
+        .setOrigin(0, 1)
+        .setDepth(50);
+    }
+
     if (this.mode === 'hand') {
       this.flipBtn = this.add
         .text(W - 20, 74, '🔄 FLIP CAMERA', textStyle(16))
@@ -309,9 +317,16 @@ export class GameScene extends Phaser.Scene {
   }
 
   updateNet(dt) {
+    if (this.debugText) {
+      const t = handTracker;
+      this.debugText.setText(
+        `game ${Math.round(this.game.loop.actualFps)}fps | track ${Math.round(t.lastMs)}ms ${t.ratePerSec ?? 0}/s | hand ${t.handPct ?? 0}% | ${t.visible ? 'SEEN' : 'LOST'} ${t.fist ? 'FIST' : 'OPEN'} | cam ${this.video.videoWidth}x${this.video.videoHeight} ${t.facing}`,
+      );
+    }
     if (this.mode === 'hand') {
       if (handTracker.visible) {
-        const p = this.videoToGame(handTracker.x, handTracker.y);
+        const hp = handTracker.position();
+        const p = this.videoToGame(hp.x, hp.y);
         if (p) {
           this.netTarget.x = p.x;
           this.netTarget.y = p.y;

@@ -1,4 +1,4 @@
-# Basket King
+# Basket Money King
 
 Catch the falling money with your hand, avoid the bombs. Browser game (V1).
 

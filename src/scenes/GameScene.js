@@ -14,7 +14,11 @@ const MOUTH_HALF_W = NET.hoopRX * NET_SCALE * 0.9;
 const TOUCH_MOUTH_Y = H - 250;
 const MOUTH_Y_MIN = 300;
 const MOUTH_Y_MAX = H - 140;
-const NET_FOLLOW = 16; // higher = snappier net, lower = smoother
+const NET_FOLLOW = 16; // touch: higher = snappier net, lower = smoother
+const NET_FOLLOW_HAND = 30; // hand: the tracker already delivers a smooth path, so follow it closely
+// Hand mode is a little more forgiving to make up for the camera's small delay.
+const HAND_CATCH_BONUS = 1.25; // wider net opening
+const HAND_SPEED = 0.85; // slightly slower rain
 const REQUIRE_FIST = true; // hand mode: the net only works while the hand is a closed fist
 const BAR = { x: 24, y: 128, w: W - 48, h: 30 };
 
@@ -210,6 +214,10 @@ export class GameScene extends Phaser.Scene {
     this.spawn();
   }
 
+  speedK() {
+    return this.mode === 'hand' ? HAND_SPEED : 1;
+  }
+
   // ---------- spawning ----------
 
   spawn() {
@@ -231,8 +239,8 @@ export class GameScene extends Phaser.Scene {
       key = noteKey(this.currency, note);
     }
 
-    const g = c.gravity;
-    const vy = c.startSpeed * (0.85 + this.rng.frac() * 0.3);
+    const g = c.gravity * this.speedK();
+    const vy = c.startSpeed * this.speedK() * (0.85 + this.rng.frac() * 0.3);
     const comet = this.rng.frac() < c.cometChance;
     let x;
     let y;
@@ -292,7 +300,8 @@ export class GameScene extends Phaser.Scene {
 
     const mouthX = this.net.x;
     const mouthY = this.net.y - GRIP_TO_MOUTH;
-    const g = this.cfg.gravity;
+    const g = this.cfg.gravity * this.speedK();
+    const halfW = MOUTH_HALF_W * (this.mode === 'hand' ? HAND_CATCH_BONUS : 1);
 
     for (let i = this.items.length - 1; i >= 0; i--) {
       const it = this.items[i];
@@ -304,7 +313,7 @@ export class GameScene extends Phaser.Scene {
       if (it.glow) it.glow.setPosition(s.x, s.y);
       this.emitTrail(it);
 
-      const inMouth = Math.abs(s.x - mouthX) < MOUTH_HALF_W && s.y > mouthY - 32 && s.y < mouthY + 22;
+      const inMouth = Math.abs(s.x - mouthX) < halfW && s.y > mouthY - 36 && s.y < mouthY + 26;
       if (this.netActive && it.vy > 0 && inMouth) {
         this.items.splice(i, 1);
         this.onCatch(it, mouthX, mouthY);
@@ -344,7 +353,7 @@ export class GameScene extends Phaser.Scene {
 
     const tx = Phaser.Math.Clamp(this.netTarget.x, MOUTH_HALF_W, W - MOUTH_HALF_W);
     const ty = Phaser.Math.Clamp(this.netTarget.y, MOUTH_Y_MIN + GRIP_TO_MOUTH, MOUTH_Y_MAX + GRIP_TO_MOUTH);
-    const k = Math.min(1, dt * NET_FOLLOW);
+    const k = Math.min(1, dt * (this.mode === 'hand' ? NET_FOLLOW_HAND : NET_FOLLOW));
     this.net.x += (tx - this.net.x) * k;
     this.net.y += (ty - this.net.y) * k;
     this.net.alpha += ((this.netActive ? 1 : 0.25) - this.net.alpha) * Math.min(1, dt * 10);

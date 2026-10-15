@@ -10,9 +10,9 @@ const { FilesetResolver, HandLandmarker } = self.module.exports;
 
 const TRIAL_WARMUP = 3; // first frames of each delegate are always slow — not counted
 const TRIAL_FRAMES = 8;
-const GPU_ABORT_MS = 150; // a GPU frame slower than this (after warm-up) ends the GPU trial at once
+const GPU_ABORT_MS = 300; // a GPU frame slower than this (after warm-up) ends the GPU trial at once
 const GPU_TRIAL_MAX_MS = 3000;
-const GPU_MUST_BE = 0.6; // GPU is only chosen if it takes at most 60% of the CPU time
+const GPU_MUST_BE = 0.85; // GPU is chosen if it is at least 15% faster than the CPU
 
 let fileset = null;
 let landmarkers = {}; // { GPU, CPU }

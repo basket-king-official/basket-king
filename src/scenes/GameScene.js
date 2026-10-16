@@ -7,6 +7,7 @@ import { load, save } from '../storage.js';
 import { drawSky, toast } from '../ui.js';
 import { sfx } from '../sfx.js';
 import { NET } from './BootScene.js';
+import { loseLife } from '../lives.js';
 
 const NET_SCALE = 1.1;
 const GRIP_TO_MOUTH = (NET.gripY - NET.hoopY) * NET_SCALE; // distance from fist (grip) up to the net opening
@@ -500,6 +501,7 @@ export class GameScene extends Phaser.Scene {
       save('level', Math.max(load('level', 1), this.levelNum + 1));
     } else {
       sfx.lose();
+      loseLife(); // failing a level costs one life (Candy Crush style)
     }
     this.time.delayedCall(won ? 700 : 900, () =>
       this.scene.start('Result', {

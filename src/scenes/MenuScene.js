@@ -4,6 +4,7 @@ import { button, drawSky, toast } from '../ui.js';
 import { handTracker } from '../input/handTracker.js';
 import { load } from '../storage.js';
 import { sfx } from '../sfx.js';
+import { getLives, msToNextLife, formatCountdown, heartsText, MAX_LIVES } from '../lives.js';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -16,32 +17,54 @@ export class MenuScene extends Phaser.Scene {
 
     drawSky(this);
 
-    const logo = this.add.image(W / 2, 250, 'logo');
+    const logo = this.add.image(W / 2, 245, 'logo');
     const base = Math.min(1, (W - 50) / logo.width);
     logo.setScale(base);
     this.tweens.add({ targets: logo, scale: base * 1.04, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
 
-    this.add.text(W / 2, 478, `LEVEL ${this.level}`, textStyle(36, COLORS.gold)).setOrigin(0.5);
+    this.add.text(W / 2, 468, `LEVEL ${this.level}`, textStyle(34, COLORS.gold)).setOrigin(0.5);
 
-    button(this, W / 2, 585, 'PLAY WITH HAND ✊', () => this.startHand());
-    button(this, W / 2, 695, 'PLAY WITH TOUCH 👆', () => this.startGame('touch'), { fill: 0x3ee07a, textColor: '#0f3a1c' });
+    // Lives: hearts + refill countdown, updated every second.
+    this.livesText = this.add.text(W / 2, 515, '', textStyle(30, COLORS.danger)).setOrigin(0.5);
+    this.livesTimer = this.add.text(W / 2, 550, '', textStyle(18)).setOrigin(0.5);
+    this.updateLives();
+    this.time.addEvent({ delay: 1000, loop: true, callback: this.updateLives, callbackScope: this });
+
+    button(this, W / 2, 625, 'PLAY WITH HAND ✊', () => this.startHand());
+    button(this, W / 2, 728, 'PLAY WITH TOUCH 👆', () => this.startGame('touch'), { fill: 0x3ee07a, textColor: '#0f3a1c' });
 
     this.status = this.add
-      .text(W / 2, 790, 'Point your back camera at your fist ✊\nand catch the money with the net!', {
-        ...textStyle(20),
+      .text(W / 2, 805, 'Point your back camera at your fist ✊\nand catch the money with the net!', {
+        ...textStyle(19),
         align: 'center',
         wordWrap: { width: W - 60 },
       })
       .setOrigin(0.5, 0);
     this.add
-      .text(W / 2, 900, 'Your camera stays on your device. Nothing is recorded.', { ...textStyle(15), align: 'center' })
+      .text(W / 2, 915, 'Your camera stays on your device. Nothing is recorded.', { ...textStyle(15), align: 'center' })
       .setOrigin(0.5);
 
     if (data.message) toast(this, data.message);
   }
 
+  updateLives() {
+    const n = getLives();
+    this.livesText.setText(heartsText(n));
+    if (n >= MAX_LIVES) this.livesTimer.setText('Lives full');
+    else this.livesTimer.setText(`+1 life in ${formatCountdown(msToNextLife())}`);
+  }
+
+  // Returns true if the player may start a level; otherwise explains why not.
+  hasLife() {
+    if (getLives() > 0) return true;
+    sfx.lose();
+    toast(this, `No lives left! 💔\nNext life in ${formatCountdown(msToNextLife())}`);
+    this.tweens.add({ targets: this.livesText, scale: 1.3, duration: 120, yoyo: true, repeat: 1 });
+    return false;
+  }
+
   async startHand() {
-    if (this.starting) return;
+    if (this.starting || !this.hasLife()) return;
     this.starting = true;
     sfx.unlock();
     this.status.setText('Starting camera…');
@@ -57,6 +80,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   startGame(mode) {
+    if (!this.hasLife()) return;
     sfx.unlock();
     this.scene.start('Game', { level: this.level, mode });
   }

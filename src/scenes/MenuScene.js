@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { W, COLORS, textStyle } from '../theme.js';
+import { W, H, COLORS, VERSION, textStyle } from '../theme.js';
 import { button, drawSky, toast } from '../ui.js';
 import { handTracker } from '../input/handTracker.js';
 import { load } from '../storage.js';
@@ -41,8 +41,26 @@ export class MenuScene extends Phaser.Scene {
       })
       .setOrigin(0.5, 0);
     this.add
-      .text(W / 2, 915, 'Your camera stays on your device. Nothing is recorded.', { ...textStyle(15), align: 'center' })
+      .text(W / 2, 893, 'Virtual money only · No betting · Camera stays on your device', { ...textStyle(14), align: 'center' })
       .setOrigin(0.5);
+
+    // Footer links (About / Privacy / Terms) + version label.
+    const links = [
+      ['About', '/about.html'],
+      ['Privacy', '/privacy.html'],
+      ['Terms', '/terms.html'],
+    ];
+    links.forEach(([label, href], i) => {
+      const t = this.add
+        .text(W / 2 + (i - 1) * 110, 930, label, textStyle(17, COLORS.gold))
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+      t.on('pointerup', () => {
+        handTracker.stop();
+        window.location.href = href;
+      });
+    });
+    this.add.text(W - 10, H - 6, `v${VERSION}`, textStyle(13)).setOrigin(1, 1).setAlpha(0.8);
 
     if (data.message) toast(this, data.message);
   }

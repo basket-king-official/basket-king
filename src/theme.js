@@ -1,5 +1,6 @@
 export const W = 540;
 export const H = 960;
+export const VERSION = '0.8';
 
 export const COLORS = {
   gold: '#ffd23f',

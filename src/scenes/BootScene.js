@@ -25,6 +25,7 @@ export class BootScene extends Phaser.Scene {
     this.makeSpark();
     this.makeStar();
     this.makeSmoke();
+    this.makeShield();
     this.makeSun();
     this.makeRays();
     this.makeCloud();
@@ -279,6 +280,43 @@ export class BootScene extends Phaser.Scene {
       g.addColorStop(1, 'rgba(60,60,70,0)');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, 48, 48);
+    });
+  }
+
+  // In-level protection (3 bomb hits). Hearts are only used for lives, so players don't mix them up.
+  makeShield() {
+    this.canvas('shield', 44, 50, (ctx) => {
+      const path = () => {
+        ctx.beginPath();
+        ctx.moveTo(22, 4);
+        ctx.lineTo(40, 10);
+        ctx.quadraticCurveTo(40, 34, 22, 46);
+        ctx.quadraticCurveTo(4, 34, 4, 10);
+        ctx.closePath();
+      };
+      withShadow(ctx, () => {
+        path();
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+      });
+      ctx.save();
+      ctx.translate(22, 25);
+      ctx.scale(0.82, 0.82);
+      ctx.translate(-22, -25);
+      path();
+      const g = ctx.createLinearGradient(0, 4, 0, 46);
+      g.addColorStop(0, '#7fd0ff');
+      g.addColorStop(1, '#1f5fa8');
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.beginPath();
+      ctx.moveTo(22, 10);
+      ctx.lineTo(33, 14);
+      ctx.quadraticCurveTo(33, 22, 22, 26);
+      ctx.closePath();
+      ctx.fill();
     });
   }
 

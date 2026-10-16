@@ -124,7 +124,8 @@ export class GameScene extends Phaser.Scene {
 
   createHud() {
     this.levelText = this.add.text(20, 16, `LEVEL ${this.levelNum}`, textStyle(28, COLORS.gold)).setDepth(20);
-    this.livesText = this.add.text(20, 54, '', textStyle(38, COLORS.danger)).setDepth(20);
+    // Shields = bomb hits left in this level (hearts are only for lives).
+    this.shields = Array.from({ length: this.cfg.lives }, (_, i) => this.add.image(40 + i * 46, 82, 'shield').setDepth(20));
     this.timeText = this.add.text(W - 20, 10, '', textStyle(48)).setOrigin(1, 0).setDepth(20);
 
     const frame = this.add.graphics().setDepth(20);
@@ -413,7 +414,8 @@ export class GameScene extends Phaser.Scene {
       this.burst.setParticleTint(0xff7a00);
       this.burst.explode(22, mx, my);
       this.popText(mx, my - 40, 'BOOM!', 48, COLORS.danger);
-      this.tweens.add({ targets: this.livesText, scale: 1.4, duration: 120, yoyo: true });
+      const lost = this.shields[this.lives - 1];
+      if (lost) this.tweens.add({ targets: lost, scale: 1.5, duration: 120, yoyo: true });
       this.updateHud();
       if (this.lives <= 0) this.finish(false, 'boom');
       return;
@@ -477,7 +479,10 @@ export class GameScene extends Phaser.Scene {
 
   updateHud() {
     this.timeText.setText(`${Math.max(0, this.timeLeft)}s`).setColor(this.timeLeft <= 5 ? COLORS.danger : COLORS.text);
-    this.livesText.setText('♥'.repeat(Math.max(0, this.lives)) + '♡'.repeat(Math.max(0, this.cfg.lives - this.lives)));
+    this.shields.forEach((s, i) => {
+      if (i < this.lives) s.clearTint().setAlpha(1);
+      else s.setTint(0x555566).setAlpha(0.45);
+    });
     const pct = Math.min(1, this.score / this.cfg.target);
     const fw = Math.max(0, BAR.w * pct);
     this.barFill.clear();

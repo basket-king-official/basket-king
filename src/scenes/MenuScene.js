@@ -4,6 +4,7 @@ import { button, drawSky, toast } from '../ui.js';
 import { handTracker } from '../input/handTracker.js';
 import { load } from '../storage.js';
 import { sfx } from '../sfx.js';
+import { initOnline } from '../online.js';
 import { getLives, msToNextLife, formatCountdown, heartsText, MAX_LIVES } from '../lives.js';
 
 export class MenuScene extends Phaser.Scene {
@@ -17,25 +18,30 @@ export class MenuScene extends Phaser.Scene {
 
     drawSky(this);
 
-    const logo = this.add.image(W / 2, 245, 'logo');
+    const logo = this.add.image(W / 2, 228, 'logo');
     const base = Math.min(1, (W - 50) / logo.width);
     logo.setScale(base);
     this.tweens.add({ targets: logo, scale: base * 1.04, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
 
-    this.add.text(W / 2, 468, `LEVEL ${this.level}`, textStyle(34, COLORS.gold)).setOrigin(0.5);
+    this.levelText = this.add.text(W / 2, 445, `LEVEL ${this.level}`, textStyle(34, COLORS.gold)).setOrigin(0.5);
 
     // Lives: hearts + refill countdown, updated every second.
-    this.livesText = this.add.text(W / 2, 515, '', textStyle(30, COLORS.danger)).setOrigin(0.5);
-    this.livesTimer = this.add.text(W / 2, 550, '', textStyle(18)).setOrigin(0.5);
+    this.livesText = this.add.text(W / 2, 490, '', textStyle(30, COLORS.danger)).setOrigin(0.5);
+    this.livesTimer = this.add.text(W / 2, 524, '', textStyle(18)).setOrigin(0.5);
     this.updateLives();
     this.time.addEvent({ delay: 1000, loop: true, callback: this.updateLives, callbackScope: this });
 
-    button(this, W / 2, 625, 'PLAY WITH HAND ✊', () => this.startHand());
-    button(this, W / 2, 728, 'PLAY WITH TOUCH 👆', () => this.startGame('touch'), { fill: 0x3ee07a, textColor: '#0f3a1c' });
+    button(this, W / 2, 598, 'PLAY WITH HAND ✊', () => this.startHand());
+    button(this, W / 2, 690, 'PLAY WITH TOUCH 👆', () => this.startGame('touch'), { fill: 0x3ee07a, textColor: '#0f3a1c' });
+    button(this, W / 2, 778, '🏆 LEADERBOARD', () => this.scene.start('Leaderboard'), {
+      height: 68,
+      fill: 0xffffff,
+      textColor: '#1a1030',
+    });
 
     this.status = this.add
-      .text(W / 2, 805, 'Point your back camera at your fist ✊\nand catch the money with the net!', {
-        ...textStyle(19),
+      .text(W / 2, 830, 'Point your back camera at your fist ✊\nand catch the money with the net!', {
+        ...textStyle(17),
         align: 'center',
         wordWrap: { width: W - 60 },
       })
@@ -63,6 +69,11 @@ export class MenuScene extends Phaser.Scene {
     this.add.text(W - 10, H - 6, `v${VERSION}`, textStyle(13)).setOrigin(1, 1).setAlpha(0.8);
 
     if (data.message) toast(this, data.message);
+
+    // Silent guest account for the leaderboard (does nothing if offline).
+    initOnline().then(() => {
+      if (this.scene.isActive()) this.levelText?.setText(`LEVEL ${(this.level = load('level', 1))}`);
+    });
   }
 
   updateLives() {

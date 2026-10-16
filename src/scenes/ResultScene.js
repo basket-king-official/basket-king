@@ -57,5 +57,11 @@ export class ResultScene extends Phaser.Scene {
       },
       { fill: 0xffffff, textColor: '#1a1030' },
     );
+
+    const lb = this.add
+      .text(W / 2, 880, '🏆 See the leaderboard', textStyle(22, COLORS.gold))
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    lb.on('pointerup', () => this.scene.start('Leaderboard', { back: 'Result', backData: d }));
   }
 }

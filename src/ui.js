@@ -55,7 +55,7 @@ export function toast(scene, message, ms = 2600) {
   const t = scene.add
     .text(W / 2, H - 170, message, {
       ...textStyle(21),
-      backgroundColor: 'rgba(20,10,40,0.78)',
+      backgroundColor: 'rgba(20,10,40,0.95)',
       padding: { x: 16, y: 10 },
       align: 'center',
       wordWrap: { width: W - 60 },

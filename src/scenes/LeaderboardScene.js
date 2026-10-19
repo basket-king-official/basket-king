@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { W, H, COLORS, textStyle } from '../theme.js';
 import { button, drawSky, toast } from '../ui.js';
 import { load } from '../storage.js';
+import { askName } from '../nameDialog.js';
 import { CURRENCIES, DEFAULT_CURRENCY } from '../config/currency.js';
 import { fetchLeaderboard, getProfile, initOnline, setDisplayName, pointsToMoney, msUntilReset, formatDuration } from '../online.js';
 
@@ -133,17 +134,19 @@ export class LeaderboardScene extends Phaser.Scene {
   }
 
   async changeName() {
-    const current = getProfile()?.display_name ?? '';
-    // eslint-disable-next-line no-alert
-    const name = window.prompt('Your leaderboard name (3–15 letters or numbers):', current);
-    if (name === null || name.trim() === current) return;
-    try {
-      await initOnline();
-      await setDisplayName(name);
+    if (this.naming) return;
+    this.naming = true;
+    const name = await askName({
+      current: getProfile()?.display_name ?? '',
+      onSubmit: async (n) => {
+        await initOnline();
+        await setDisplayName(n);
+      },
+    });
+    this.naming = false;
+    if (name && this.scene.isActive()) {
       toast(this, 'Name saved ✅');
       this.select(this.period);
-    } catch (err) {
-      toast(this, err.message || 'Could not save the name');
     }
   }
 }

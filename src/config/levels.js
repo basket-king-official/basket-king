@@ -3,13 +3,15 @@ import { averageNoteValue } from './currency.js';
 // All difficulty numbers live here so they are easy to tune after playtesting.
 export function levelConfig(level, currency) {
   const n = Math.max(1, level);
-  const catchesNeeded = 20 + n * 2;
+  // Grows 2 per level, stops at Level 40 so endless levels stay beatable (speed/bombs keep them hard).
+  // Keep in sync with level_target_points() in supabase/002_level_rules.sql.
+  const catchesNeeded = Math.min(100, 20 + n * 2);
   const step = currency.notes[0].value * 5;
   const target = Math.ceil((catchesNeeded * averageNoteValue(currency)) / step) * step; // L1 ≈ 10 000F
 
   return {
     level: n,
-    timeLimit: Math.max(25, 40 - Math.floor((n - 1) / 2)), // L1 40s, loses 1s every 2 levels, floor 25s
+    timeLimit: Math.min(60, 45 + 5 * Math.floor((n - 1) / 10)), // L1-10 45s, +5s every 10 levels, max 60s from L31
     target,
     lives: 3,
     startSpeed: Math.min(700, 240 + n * 14), // px/s when an item appears

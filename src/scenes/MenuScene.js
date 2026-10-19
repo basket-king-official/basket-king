@@ -5,6 +5,7 @@ import { handTracker } from '../input/handTracker.js';
 import { load } from '../storage.js';
 import { sfx } from '../sfx.js';
 import { initOnline } from '../online.js';
+import { HAND_MODE_ENABLED } from '../config/features.js';
 import { getLives, msToNextLife, formatCountdown, heartsText, MAX_LIVES } from '../lives.js';
 
 export class MenuScene extends Phaser.Scene {
@@ -31,8 +32,12 @@ export class MenuScene extends Phaser.Scene {
     this.updateLives();
     this.time.addEvent({ delay: 1000, loop: true, callback: this.updateLives, callbackScope: this });
 
-    button(this, W / 2, 598, 'PLAY WITH HAND ✊', () => this.startHand());
-    button(this, W / 2, 690, 'PLAY WITH TOUCH 👆', () => this.startGame('touch'), { fill: 0x3ee07a, textColor: '#0f3a1c' });
+    if (HAND_MODE_ENABLED) {
+      button(this, W / 2, 598, 'PLAY WITH HAND ✊', () => this.startHand());
+      button(this, W / 2, 690, 'PLAY WITH TOUCH 👆', () => this.startGame('touch'), { fill: 0x3ee07a, textColor: '#0f3a1c' });
+    } else {
+      button(this, W / 2, 630, '▶  PLAY', () => this.startGame('touch'), { width: 400, height: 104, fill: 0x3ee07a, textColor: '#0f3a1c' });
+    }
     button(this, W / 2, 778, '🏆 LEADERBOARD', () => this.scene.start('Leaderboard'), {
       height: 68,
       fill: 0xffffff,
@@ -40,14 +45,14 @@ export class MenuScene extends Phaser.Scene {
     });
 
     this.status = this.add
-      .text(W / 2, 830, 'Point your back camera at your fist ✊\nand catch the money with the net!', {
+      .text(W / 2, 830, HAND_MODE_ENABLED ? 'Point your back camera at your fist ✊\nand catch the money with the net!' : 'Drag your finger to move the net 👆\nCatch the money, dodge the bombs! 💣', {
         ...textStyle(17),
         align: 'center',
         wordWrap: { width: W - 60 },
       })
       .setOrigin(0.5, 0);
     this.add
-      .text(W / 2, 893, 'Virtual money only · No betting · Camera stays on your device', { ...textStyle(14), align: 'center' })
+      .text(W / 2, 893, HAND_MODE_ENABLED ? 'Virtual money only · No betting · Camera stays on your device' : 'Virtual money only · No betting', { ...textStyle(14), align: 'center' })
       .setOrigin(0.5);
 
     // Footer links (About / Privacy / Terms) + version label.

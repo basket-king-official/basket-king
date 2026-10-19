@@ -4,7 +4,7 @@ import { button, drawSky, toast } from '../ui.js';
 import { handTracker } from '../input/handTracker.js';
 import { load } from '../storage.js';
 import { sfx } from '../sfx.js';
-import { initOnline } from '../online.js';
+import { initOnline, getShopState, refreshShop } from '../online.js';
 import { HAND_MODE_ENABLED } from '../config/features.js';
 import { getLives, msToNextLife, formatCountdown, heartsText, MAX_LIVES } from '../lives.js';
 
@@ -38,11 +38,18 @@ export class MenuScene extends Phaser.Scene {
     } else {
       button(this, W / 2, 630, '▶  PLAY', () => this.startGame('touch'), { width: 400, height: 104, fill: 0x3ee07a, textColor: '#0f3a1c' });
     }
-    button(this, W / 2, 778, '🏆 LEADERBOARD', () => this.scene.start('Leaderboard'), {
-      height: 68,
-      fill: 0xffffff,
-      textColor: '#1a1030',
-    });
+    const small = { width: 236, height: 70, fill: 0xffffff, textColor: '#1a1030' };
+    button(this, W / 2 - 124, 772, '🏆 RANKING', () => this.scene.start('Leaderboard'), small).list[1].setFontSize(25);
+    button(this, W / 2 + 124, 772, '🛒 SHOP', () => this.scene.start('Shop'), small).list[1].setFontSize(25);
+
+    // Coin balance (top-left), refreshed from the server when possible.
+    this.coinsText = this.add.text(18, 14, '', textStyle(24, COLORS.gold)).setDepth(5);
+    const showCoins = () => {
+      const c = getShopState()?.coins;
+      if (this.scene.isActive() && c != null) this.coinsText.setText(`🪙 ${c.toLocaleString('fr-FR')}`);
+    };
+    showCoins();
+    refreshShop().then(showCoins).catch(() => {});
 
     this.status = this.add
       .text(W / 2, 830, HAND_MODE_ENABLED ? 'Point your back camera at your fist ✊\nand catch the money with the net!' : 'Drag your finger to move the net 👆\nCatch the money, dodge the bombs! 💣', {

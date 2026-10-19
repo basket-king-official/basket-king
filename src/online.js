@@ -44,6 +44,7 @@ export function initOnline() {
       profile = await rpc('ensure_profile', { p_claim_level: load('level', 1) });
       // Same account on a new device: continue from the furthest level.
       if (profile?.max_level > load('level', 1)) save('level', profile.max_level);
+      rpc('shop_state').then(setShopState).catch(() => {}); // warm the shop cache (coins, net, boosts)
       return profile;
     })().catch((err) => {
       console.warn('Online features unavailable:', err?.message || err);
@@ -72,6 +73,7 @@ export async function submitRun({ level, points, won, mode }) {
   try {
     if (!(await initOnline())) return null;
     profile = await rpc('submit_run', { p_level: level, p_points: points, p_won: won, p_mode: mode });
+    if (shopState) setShopState({ ...shopState, coins: profile.coins });
     return profile;
   } catch (err) {
     console.warn('Score not sent:', err.message);
@@ -110,4 +112,59 @@ export function formatDuration(ms) {
   const h = Math.floor((m % 1440) / 60);
   if (d > 0) return `${d}d ${h}h`;
   return `${h}h ${m % 60}m`;
+}
+
+// ============ SHOP ============
+// Shop state: { coins, equipped_net, items:[{id,kind,name,price}], inventory:{id:qty} }.
+// The last known state is cached on the device so the game can show the equipped net and
+// boosts even before the server answers (or when offline).
+let shopState = load('shop', null);
+
+function setShopState(state) {
+  if (state) {
+    shopState = state;
+    save('shop', state);
+    if (profile) profile = { ...profile, coins: state.coins, equipped_net: state.equipped_net };
+  }
+  return shopState;
+}
+
+export function getShopState() {
+  return shopState;
+}
+
+export function coinsForRun(points, won) {
+  return Math.floor(Math.max(points, 0) / 10) + (won ? 5 : 0); // same formula as coins_for_run() on the server
+}
+
+export async function refreshShop() {
+  if (!(await initOnline())) throw new Error('You are offline');
+  return setShopState(await rpc('shop_state'));
+}
+
+export async function buyItem(id) {
+  if (!(await initOnline())) throw new Error('You are offline');
+  return setShopState(await rpc('buy_item', { p_item: id }));
+}
+
+export async function equipSky(id) {
+  if (!(await initOnline())) throw new Error('You are offline');
+  return setShopState(await rpc('equip_sky', { p_item: id }));
+}
+
+export async function equipNet(id) {
+  if (!(await initOnline())) throw new Error('You are offline');
+  return setShopState(await rpc('equip_net', { p_item: id }));
+}
+
+// Boosts are used during a level: update the local count at once, confirm with the server in the background.
+export function useBoost(id) {
+  const left = shopState?.inventory?.[id] ?? 0;
+  if (left <= 0) return false;
+  setShopState({ ...shopState, inventory: { ...shopState.inventory, [id]: left - 1 } });
+  initOnline()
+    .then((ok) => ok && rpc('use_item', { p_item: id }))
+    .then((state) => state && setShopState(state))
+    .catch((err) => console.warn('Boost not synced:', err.message));
+  return true;
 }

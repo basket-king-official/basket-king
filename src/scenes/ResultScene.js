@@ -23,14 +23,15 @@ export class ResultScene extends Phaser.Scene {
     const title = d.won ? 'LEVEL CLEARED!' : d.reason === 'boom' ? 'BOOM! 💣' : "TIME'S UP!";
     const t = this.add.text(W / 2, 222, title, textStyle(50, d.won ? COLORS.gold : COLORS.danger)).setOrigin(0.5).setScale(0);
     this.tweens.add({ targets: t, scale: 1, duration: 450, ease: 'Back.out' });
-    this.add.text(W / 2, 300, `Level ${d.level}`, textStyle(32)).setOrigin(0.5);
-    this.add.text(W / 2, 358, `${d.score} / ${d.target}`, textStyle(30, d.won ? COLORS.green : COLORS.text)).setOrigin(0.5);
-    if (d.bestCombo >= 5) this.add.text(W / 2, 405, `Best combo x${d.bestCombo}`, textStyle(22, COLORS.gold)).setOrigin(0.5);
+    this.add.text(W / 2, 290, `Level ${d.level}`, textStyle(30)).setOrigin(0.5);
+    this.add.text(W / 2, 340, `${d.score} / ${d.target}`, textStyle(30, d.won ? COLORS.green : COLORS.text)).setOrigin(0.5);
+    if (d.coins > 0) this.add.text(W / 2, 388, `+${d.coins} 🪙 coins`, textStyle(26, COLORS.gold)).setOrigin(0.5);
+    if (d.bestCombo >= 5) this.add.text(W / 2, 426, `Best combo x${d.bestCombo}`, textStyle(19, COLORS.gold)).setOrigin(0.5);
 
     // Lives left (failing a level costs one).
     const lives = getLives();
-    this.add.text(W / 2, 455, heartsText(lives), textStyle(30, COLORS.danger)).setOrigin(0.5);
-    if (!d.won) this.add.text(W / 2, 492, '-1 life', textStyle(18, COLORS.danger)).setOrigin(0.5);
+    this.add.text(W / 2, 466, heartsText(lives), textStyle(30, COLORS.danger)).setOrigin(0.5);
+    if (!d.won) this.add.text(W / 2, 500, '-1 life', textStyle(18, COLORS.danger)).setOrigin(0.5);
 
     const nextLevel = d.won ? d.level + 1 : d.level;
     // TODO (ads): on a loss, offer "Watch ad for +15 sec / +1 life" here once the ad network is approved.

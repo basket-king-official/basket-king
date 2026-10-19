@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { CURRENCIES, noteKey } from '../config/currency.js';
 import { FONT, COLORS } from '../theme.js';
+import { NET_STYLES, SKY_THEMES } from '../config/shop.js';
 
 // Net geometry inside the 'net' texture (used by GameScene for catching).
 export const NET = { w: 180, h: 320, hoopX: 90, hoopY: 42, hoopRX: 72, hoopRY: 24, gripY: 312 };
@@ -16,7 +17,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
-    this.makeNet();
+    Object.entries(NET_STYLES).forEach(([key, style]) => this.makeNet(key, style));
     this.makeBomb();
     this.makeGlow('glowRed', 'rgba(255,40,40,0.95)');
     this.makeGlow('glowGold', 'rgba(255,215,60,0.95)');
@@ -29,6 +30,9 @@ export class BootScene extends Phaser.Scene {
     this.makeSun();
     this.makeRays();
     this.makeCloud();
+    this.makeMoon();
+    this.makeSkyline();
+    Object.entries(SKY_THEMES).forEach(([key, t]) => this.makeSkyPreview(key, t));
     Object.values(CURRENCIES).forEach((c) =>
       c.notes.forEach((n) => (n.kind === 'coin' ? this.makeCoin(c, n) : this.makeBill(c, n))),
     );
@@ -41,9 +45,9 @@ export class BootScene extends Phaser.Scene {
     tex.refresh();
   }
 
-  makeNet() {
+  makeNet(key, st) {
     const { w, h, hoopX, hoopY, hoopRX, hoopRY, gripY } = NET;
-    this.canvas('net', w, h, (ctx) => {
+    this.canvas(key, w, h, (ctx) => {
       // Mesh bag hanging under the hoop.
       const tipX = hoopX + 10;
       const tipY = hoopY + 150;
@@ -53,10 +57,10 @@ export class BootScene extends Phaser.Scene {
       ctx.quadraticCurveTo(hoopX - hoopRX + 6, hoopY + 110, tipX, tipY);
       ctx.quadraticCurveTo(hoopX + hoopRX - 2, hoopY + 105, hoopX + hoopRX, hoopY);
       ctx.closePath();
-      ctx.fillStyle = 'rgba(255,255,255,0.22)';
+      ctx.fillStyle = st.meshFill;
       ctx.fill();
       ctx.clip();
-      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      ctx.strokeStyle = st.mesh;
       ctx.lineWidth = 2;
       for (let i = -12; i < 20; i++) {
         ctx.beginPath();
@@ -82,26 +86,26 @@ export class BootScene extends Phaser.Scene {
       ctx.strokeStyle = '#1a1030';
       ctx.lineWidth = 16;
       line(ctx, hoopX, hoopY + hoopRY - 4, hoopX, gripY);
-      ctx.strokeStyle = '#c98a3c';
+      ctx.strokeStyle = st.handle;
       ctx.lineWidth = 10;
       line(ctx, hoopX, hoopY + hoopRY - 4, hoopX, gripY);
       ctx.strokeStyle = 'rgba(255,255,255,0.35)';
       ctx.lineWidth = 3;
       line(ctx, hoopX - 2, hoopY + hoopRY, hoopX - 2, gripY - 50);
-      ctx.strokeStyle = '#6b3d14';
+      ctx.strokeStyle = st.grip;
       ctx.lineWidth = 12;
       line(ctx, hoopX, gripY - 48, hoopX, gripY - 2);
 
       // Glowing gold hoop.
       ctx.save();
-      ctx.shadowColor = 'rgba(255,210,63,0.95)';
+      ctx.shadowColor = st.glow;
       ctx.shadowBlur = 14;
       ctx.strokeStyle = '#1a1030';
       ctx.lineWidth = 11;
       ellipse(ctx, hoopX, hoopY, hoopRX, hoopRY);
       ctx.stroke();
       ctx.restore();
-      ctx.strokeStyle = '#ffd23f';
+      ctx.strokeStyle = st.hoop;
       ctx.lineWidth = 6;
       ellipse(ctx, hoopX, hoopY, hoopRX, hoopRY);
       ctx.stroke();
@@ -347,6 +351,117 @@ export class BootScene extends Phaser.Scene {
         ctx.closePath();
         ctx.fill();
       }
+    });
+  }
+
+  makeMoon() {
+    this.canvas('moon', 160, 160, (ctx) => {
+      const glow = ctx.createRadialGradient(80, 80, 30, 80, 80, 80);
+      glow.addColorStop(0, 'rgba(255,250,220,0.55)');
+      glow.addColorStop(1, 'rgba(255,250,220,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, 160, 160);
+      ctx.fillStyle = '#fff6d5';
+      circle(ctx, 80, 80, 40);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(200,190,150,0.45)';
+      [[66, 70, 8], [92, 92, 6], [88, 64, 4], [70, 96, 5]].forEach(([x, y, r]) => {
+        circle(ctx, x, y, r);
+        ctx.fill();
+      });
+    });
+  }
+
+  // Original city skyline (generic buildings + palms), drawn in code.
+  makeSkyline() {
+    const w = 540;
+    const h = 300;
+    this.canvas('skyline', w, h, (ctx) => {
+      const base = '#24123f';
+      const buildings = [
+        [0, 150, 60], [55, 110, 48], [100, 175, 70], [165, 95, 40], [200, 205, 62],
+        [258, 130, 54], [308, 240, 46], [350, 160, 66], [412, 120, 44], [452, 185, 58], [505, 140, 40],
+      ];
+      ctx.fillStyle = base;
+      buildings.forEach(([x, bh, bw]) => ctx.fillRect(x, h - bh, bw, bh));
+      // antenna on the tallest tower
+      ctx.fillRect(329, h - 275, 4, 36);
+      // lit windows
+      buildings.forEach(([x, bh, bw], i) => {
+        for (let wy = h - bh + 14; wy < h - 16; wy += 20) {
+          for (let wx = x + 8; wx < x + bw - 10; wx += 14) {
+            if ((wx * 7 + wy * 3 + i) % 5 < 2) continue;
+            ctx.fillStyle = (wx + wy) % 3 === 0 ? 'rgba(255,214,110,0.95)' : 'rgba(255,180,80,0.7)';
+            ctx.fillRect(wx, wy, 6, 8);
+          }
+        }
+      });
+      // palm trees in front
+      const palm = (px, ph) => {
+        ctx.strokeStyle = '#140a26';
+        ctx.lineWidth = 7;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(px, h);
+        ctx.quadraticCurveTo(px + 12, h - ph / 2, px + 6, h - ph);
+        ctx.stroke();
+        ctx.fillStyle = '#140a26';
+        for (let a = 0; a < 6; a++) {
+          const ang = -Math.PI / 2 + (a - 2.5) * 0.55;
+          ctx.beginPath();
+          ctx.ellipse(px + 6 + Math.cos(ang) * 26, h - ph + Math.sin(ang) * 14 + 6, 30, 7, ang, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      };
+      palm(40, 170);
+      palm(480, 150);
+      // ground strip
+      ctx.fillStyle = '#140a26';
+      ctx.fillRect(0, h - 14, w, 14);
+    });
+  }
+
+  // Small picture of each sky for the shop cards.
+  makeSkyPreview(key, t) {
+    const w = 200;
+    const h = 120;
+    const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
+    this.canvas(`prev_${key}`, w, h, (ctx) => {
+      const g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, hex(t.top));
+      g.addColorStop(1, hex(t.bottom));
+      ctx.fillStyle = g;
+      roundRect(ctx, 0, 0, w, h, 14);
+      ctx.fill();
+      ctx.save();
+      roundRect(ctx, 0, 0, w, h, 14);
+      ctx.clip();
+      if (t.stars) {
+        ctx.fillStyle = '#ffffff';
+        for (let i = 0; i < 22; i++) ctx.fillRect((i * 37) % w, (i * 23) % 70, 2, 2);
+      }
+      const bx = w * t.body.x;
+      const by = Math.min(h - 30, (t.body.y / 960) * h * 1.6 + 14);
+      ctx.fillStyle = t.body.key === 'moon' ? '#fff6d5' : hex(t.body.tint === 0xffffff ? 0xffe066 : t.body.tint);
+      circle(ctx, bx, by, t.body.key === 'moon' ? 13 : 17);
+      ctx.fill();
+      if (t.skyline) {
+        ctx.fillStyle = '#24123f';
+        [[0, 30, 22], [20, 46, 18], [40, 26, 26], [64, 54, 16], [80, 36, 24], [104, 62, 18], [122, 40, 26], [148, 50, 20], [168, 32, 32]]
+          .forEach(([x, bh, bw]) => ctx.fillRect(x, h - bh, bw, bh));
+        ctx.fillStyle = 'rgba(255,214,110,0.9)';
+        for (let i = 0; i < 24; i++) ctx.fillRect(4 + ((i * 31) % 190), h - 8 - ((i * 13) % 34), 3, 4);
+      } else {
+        ctx.fillStyle = hex(t.hills[0]);
+        ctx.beginPath();
+        ctx.ellipse(50, h + 8, 110, 34, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = hex(t.hills[1]);
+        ctx.beginPath();
+        ctx.ellipse(160, h + 12, 120, 36, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
     });
   }
 

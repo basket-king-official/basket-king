@@ -5,6 +5,7 @@ import { MenuScene } from './scenes/MenuScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { ResultScene } from './scenes/ResultScene.js';
 import { LeaderboardScene } from './scenes/LeaderboardScene.js';
+import { ShopScene } from './scenes/ShopScene.js';
 
 function startGame() {
   return new Phaser.Game({
@@ -13,7 +14,7 @@ function startGame() {
     transparent: true, // lets the full-screen camera show through in hand mode
     fps: { target: 60 },
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H },
-    scene: [BootScene, MenuScene, GameScene, ResultScene, LeaderboardScene],
+    scene: [BootScene, MenuScene, GameScene, ResultScene, LeaderboardScene, ShopScene],
   });
 }
 

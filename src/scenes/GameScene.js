@@ -8,7 +8,8 @@ import { drawSky, toast } from '../ui.js';
 import { sfx } from '../sfx.js';
 import { NET } from './BootScene.js';
 import { loseLife } from '../lives.js';
-import { submitRun, toPoints } from '../online.js';
+import { submitRun, toPoints, getShopState, useBoost, coinsForRun } from '../online.js';
+import { netTextureKey } from '../config/shop.js';
 
 const NET_SCALE = 1.1;
 const GRIP_TO_MOUTH = (NET.gripY - NET.hoopY) * NET_SCALE; // distance from fist (grip) up to the net opening
@@ -58,13 +59,13 @@ export class GameScene extends Phaser.Scene {
       g.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.55, 0.55, 0, 0);
       g.fillRect(0, 0, W, 240);
     } else {
-      drawSky(this);
+      drawSky(this, { theme: getShopState()?.equipped_sky });
     }
 
     this.createEffects();
 
     this.net = this.add
-      .image(W / 2, TOUCH_MOUTH_Y + GRIP_TO_MOUTH, 'net')
+      .image(W / 2, TOUCH_MOUTH_Y + GRIP_TO_MOUTH, netTextureKey(getShopState()?.equipped_net))
       .setOrigin(NET.hoopX / NET.w, NET.gripY / NET.h)
       .setScale(NET_SCALE)
       .setDepth(5);
@@ -143,6 +144,7 @@ export class GameScene extends Phaser.Scene {
     this.scoreText = this.add.text(W / 2, BAR.y, '', textStyle(19)).setOrigin(0.5).setDepth(23);
 
     this.boostText = this.add.text(W / 2, 182, '', textStyle(28)).setOrigin(0.5).setDepth(20).setVisible(false);
+    this.createBoostButton();
     this.hint = this.add
       .text(W / 2, H * 0.42, '', { ...textStyle(30), align: 'center', backgroundColor: 'rgba(20,10,40,0.55)', padding: { x: 18, y: 12 } })
       .setOrigin(0.5)
@@ -169,10 +171,38 @@ export class GameScene extends Phaser.Scene {
     this.updateHud();
   }
 
+  // Shop boost: tap to get 2X money for a few seconds (only shown if the player owns some).
+  createBoostButton() {
+    const left = () => getShopState()?.inventory?.boost_2x ?? 0;
+    if (left() <= 0) return;
+    const g = this.add.graphics();
+    g.fillStyle(0x2f8cff, 1);
+    g.fillRoundedRect(-62, -28, 124, 56, 18);
+    g.lineStyle(4, 0x1a1030, 1);
+    g.strokeRoundedRect(-62, -28, 124, 56, 18);
+    const t = this.add.text(0, 1, '', textStyle(22, '#ffffff')).setOrigin(0.5);
+    const btn = this.add.container(W - 82, 92, [g, t]).setDepth(25).setSize(124, 56).setInteractive({ useHandCursor: true });
+    const refresh = () => {
+      t.setText(`⚡2X ×${left()}`);
+      if (left() <= 0) btn.destroy();
+    };
+    refresh();
+    btn.on('pointerup', () => {
+      if (!this.started || this.over || this.multiplier > 1) return;
+      if (!useBoost('boost_2x')) return;
+      sfx.boost();
+      this.multiplier = 2;
+      this.multiplierUntil = this.time.now + this.cfg.boostDurationMs;
+      this.boostText.setColor(COLORS.boost2x).setVisible(true);
+      this.popText(W / 2, H * 0.4, '2X MONEY!', 64, COLORS.boost2x, 0);
+      refresh();
+    });
+  }
+
   setupInput() {
     // Touch / mouse drag moves the net in touch mode; ignored in hand mode.
     const follow = (p) => {
-      if (this.mode === 'touch') this.netTarget.x = p.x;
+      if (this.mode === 'touch' && p.y > 140) this.netTarget.x = p.x;
     };
     this.input.on('pointerdown', follow);
     this.input.on('pointermove', follow);
@@ -522,6 +552,7 @@ export class GameScene extends Phaser.Scene {
         score: this.currency.format(this.score),
         target: this.currency.format(this.cfg.target),
         points,
+        coins: coinsForRun(points, won),
       }),
     );
   }
